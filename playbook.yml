@@ -107,6 +107,7 @@
       register: services
       when: remote_services_folder_stat.stat.exists
 
+    # TODO no need to compose down services that are not changed
     - name: Compose down all services
       community.docker.docker_compose_v2:
         project_src: '{{ remote_services_folder }}'
@@ -115,11 +116,26 @@
       changed_when: false
       when: services.files is defined and services.files | length > 0
 
+    - name: Remove all files in remote services folder
+      ansible.builtin.file:
+        path: '{{ item.path }}'
+        state: absent
+      loop: '{{ services.files }}'
+      when: services.files is defined and services.files | length > 0
+      changed_when: false
+
+    - name: Ensure remote services folder exists
+      ansible.builtin.file:
+        path: '{{ remote_services_folder }}'
+        state: directory
+        mode: '0755'
+
     - name: Copy docker compose files
       ansible.builtin.copy:
         src: '{{ local_services_folder }}'
         dest: '{{ remote_services_folder }}'
         mode: '0644'
+      changed_when: false
 
     - name: List services in remote services folder
       ansible.builtin.find:
@@ -139,3 +155,4 @@
         project_src: '{{ remote_services_folder }}'
         files: "{{ services.files | map(attribute='path') | list }}"
       changed_when: false
+      when: services.files is defined and services.files | length > 0

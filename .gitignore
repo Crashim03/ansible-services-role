@@ -4,3 +4,4 @@ ansible_env/
 hosts.yml
 services/
 vars.yml
+services_examples/
